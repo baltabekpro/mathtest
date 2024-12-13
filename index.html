@@ -53,6 +53,7 @@
             border-color: #4CAF50;
             box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
         }
+        /*
         .answer-img.selected {
             border-color: #90EE90 !important;
             box-shadow: 0 0 15px rgba(144, 238, 144, 0.9);
@@ -60,6 +61,7 @@
         .selected {
             border-color: #90EE90 !important;
         }
+        */
         #submitBtn {
             margin-top: 20px;
             background-color: #4CAF50;
@@ -108,6 +110,15 @@
         .answer-btn.selected {
             background-color: #90EE90;
         }
+        /* Добавленные стили для правильных и неправильных ответов */
+        .correct {
+            border-color: #4CAF50 !important;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.9);
+        }
+        .incorrect {
+            border-color: #F44336 !important;
+            box-shadow: 0 0 15px rgba(244, 67, 54, 0.9);
+        }
     </style>
 </head>
 <body>
@@ -120,11 +131,14 @@
     <div id="test-container"></div>
     <button id="submitBtn" onclick="checkAnswers()">Завершить тест</button>
     <div id="result"></div>
+    <!-- Добавлен элемент для отображения текущего счета -->
+    <div class="score-counter">Правильные ответы: <span id="score">0</span> (<span id="percentage">0%</span>)</div>
 
     <script>
         let currentQuestionIndex = 0;
         let totalQuestions = 0;
         let testData = [];
+        let score = 0; // Инициализация счета
 
         // Встроенные данные вопросов
         const embeddedQuestions = [
@@ -449,7 +463,7 @@
                                     <img 
                                         class="answer-img" 
                                         src="${answer}"
-                                        onclick="selectAnswer(this)" 
+                                        onclick="selectAnswer(this, ${index})" 
                                         data-question="${index}"
                                         data-answer="${answer}"
                                     >
@@ -465,7 +479,7 @@
                                 ${answers.map(answer => `
                                     <button 
                                         class="answer-btn" 
-                                        onclick="selectAnswer(this)" 
+                                        onclick="selectAnswer(this, ${index})" 
                                         data-question="${index}"
                                         data-answer="${answer}"
                                     >${answer}</button>
@@ -485,51 +499,56 @@
         };
 
         // Обработка выбора ответа
-        const selectAnswer = (element) => {
+        const selectAnswer = (element, questionIndex) => {
             const questionDiv = element.closest('.question');
             const isImage = element.classList.contains('answer-img');
             const selector = isImage ? '.answer-img' : '.answer-btn';
-            
+            const currentQuestion = testData[questionIndex];
+            let isCorrect = false;
+
+            // Проверка правильности ответа
+            if (isImage) {
+                isCorrect = element.dataset.answer === currentQuestion.correctAnswer;
+            } else {
+                isCorrect = element.dataset.answer === currentQuestion.answer;
+            }
+
+            // Удаление предыдущих выделений
             const allElements = questionDiv.querySelectorAll(selector);
             allElements.forEach(el => {
-                if (isImage) {
-                    el.classList.remove('selected');
-                } else {
-                    el.classList.remove('selected');
-                }
+                el.classList.remove('correct', 'incorrect');
             });
-            
-            if (isImage) {
-                element.classList.add('selected');
+
+            // Добавление класса выбранного ответа
+            if (isCorrect) {
+                element.classList.add('correct');
+                score++;
             } else {
-                element.classList.add('selected');
+                element.classList.add('incorrect');
+                // Подсветка правильного ответа
+                const correctElement = isImage 
+                    ? questionDiv.querySelector(`.answer-img[data-answer="${currentQuestion.correctAnswer}"]`)
+                    : questionDiv.querySelector(`.answer-btn[data-answer="${currentQuestion.answer}"]`);
+                if (correctElement) {
+                    correctElement.classList.add('correct');
+                }
             }
+
+            // Обновление счетчика и процента
+            document.getElementById('score').textContent = score;
+            document.getElementById('percentage').textContent = `${((score / totalQuestions) * 100).toFixed(2)}%`;
+
+            // Отключение возможности выбора после ответа
+            allElements.forEach(el => {
+                el.onclick = null;
+            });
         };
 
         // Проверка ответов
         const checkAnswers = () => {
-            const questions = document.querySelectorAll('.question');
-            let correct = 0;
-            let total = questions.length;
-            
-            questions.forEach((q, index) => {
-                const currentQuestion = testData[index];
-                if (currentQuestion.type === 'image') {
-                    const selectedImage = q.querySelector('.answer-img.selected');
-                    if (selectedImage && selectedImage.dataset.answer === currentQuestion.correctAnswer) {
-                        correct++;
-                    }
-                } else {
-                    const selectedButton = q.querySelector('.answer-btn.selected');
-                    if (selectedButton && selectedButton.dataset.answer === currentQuestion.answer) {
-                        correct++;
-                    }
-                }
-            });
-
-            const resultDiv = document.getElementById('result');
-            const percentage = ((correct / total) * 100).toFixed(1);
-            resultDiv.textContent = `Ваш результат: ${correct} из ${total} (${percentage}%)`;
+            // Уже реализовано немедленное отображение правильности ответов
+            // Эта функция может быть использована для финального подсчета или дополнительных действий
+            alert(`Тест завершен! Ваш счет: ${score} из ${totalQuestions} (${((score / totalQuestions) * 100).toFixed(2)}%)`);
         };
 
         // Запуск теста при загрузке страницы
